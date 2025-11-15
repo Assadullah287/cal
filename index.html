@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Console Calculator</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom configuration for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'screen-bg': '#1e293b', // Slate 800
+                        'console-bg': '#0f172a', // Slate 900
+                        'accent-1': '#3b82f6', // Blue 500
+                        'accent-2': '#10b981', // Emerald 500
+                        'number-btn': '#334155', // Slate 700
+                        'func-btn': '#475569', // Slate 600
+                        'operator-btn': '#fb923c', // Orange 400
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Inconsolata', 'monospace'],
+                    },
+                    boxShadow: {
+                        'glow-sm': '0 0 5px rgba(59, 130, 246, 0.7)',
+                        'glow-md': '0 0 15px rgba(59, 130, 246, 0.9)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Inconsolata:wght@400;700&display=swap');
+
+        body {
+            background-color: #0d121c; /* Very dark background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        /* General Button Styling for hover/active effects */
+        .calc-btn {
+            transition: all 0.1s ease-in-out;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .calc-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+            box-shadow: 0 0 10px var(--color-hover);
+        }
+
+        .calc-btn:active {
+            opacity: 0.7;
+            transform: scale(0.98);
+        }
+
+        /* Specific styles for different button types to define the --color-hover variable */
+
+        .number-btn { --color-hover: #94a3b8; }
+        .operator-btn { --color-hover: #fb923c; }
+        .func-btn { --color-hover: #10b981; }
+        .clear-btn { --color-hover: #ef4444; }
+        .mode-btn { --color-hover: #3b82f6; }
+
+    </style>
+</head>
+<body>
+
+    <div id="calculator" class="w-full max-w-lg mx-auto bg-console-bg p-6 rounded-3xl shadow-glow-md border border-accent-1/50">
+        <h1 class="text-xl text-center font-bold text-accent-1 mb-4 font-mono tracking-widest">QUANTUM CONSOLE</h1>
+
+        <!-- Display Area -->
+        <div class="bg-screen-bg p-4 rounded-xl mb-4 border border-accent-1/40 shadow-inner">
+            <div id="history-display" class="text-accent-2 text-right text-sm h-5 overflow-hidden font-mono opacity-75"></div>
+            <div id="main-display" class="text-white text-right text-3xl font-bold font-mono min-h-10 break-words overflow-x-auto whitespace-nowrap">0</div>
+        </div>
+
+        <!-- Mode Toggle & Memory -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <button id="mode-toggle" class="calc-btn mode-btn bg-accent-1/20 text-white font-semibold py-2 rounded-lg text-sm border border-accent-1">
+                DEG
+            </button>
+            <div class="grid grid-cols-4 gap-3">
+                <button onclick="memory('MC')" class="calc-btn func-btn bg-func-btn/70 text-gray-300 rounded-lg text-xs">MC</button>
+                <button onclick="memory('MR')" class="calc-btn func-btn bg-func-btn/70 text-gray-300 rounded-lg text-xs">MR</button>
+                <button onclick="memory('M+')" class="calc-btn func-btn bg-func-btn/70 text-gray-300 rounded-lg text-xs">M+</button>
+                <button onclick="memory('M-')" class="calc-btn func-btn bg-func-btn/70 text-gray-300 rounded-lg text-xs">M-</button>
+            </div>
+        </div>
+
+
+        <!-- Calculator Grid -->
+        <div class="grid grid-cols-5 md:grid-cols-6 gap-3">
+
+            <!-- Row 1: Scientific Functions -->
+            <button onclick="appendFunction('sin(')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">sin</button>
+            <button onclick="appendFunction('cos(')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">cos</button>
+            <button onclick="appendFunction('tan(')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">tan</button>
+            <button onclick="appendValue('π')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">π</button>
+            <button onclick="clearDisplay()" class="calc-btn clear-btn bg-red-600/70 text-white py-3 rounded-lg text-sm col-span-2">AC</button>
+
+            <!-- Row 2: Inverse/Hyperbolic -->
+            <button onclick="appendFunction('asin(')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">asin</button>
+            <button onclick="appendFunction('acos(')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">acos</button>
+            <button onclick="appendFunction('atan(')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">atan</button>
+            <button onclick="appendValue('e')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">e</button>
+            <button onclick="backspace()" class="calc-btn clear-btn bg-red-600/70 text-white py-3 rounded-lg text-sm col-span-2">DEL</button>
+
+            <!-- Row 3: Logarithms & Power -->
+            <button onclick="appendFunction('log(')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">log₁₀</button>
+            <button onclick="appendFunction('ln(')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">ln</button>
+            <button onclick="appendFunction('sqrt(')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">√</button>
+            <button onclick="appendOperator('^')" class="calc-btn func-btn bg-func-btn/70 text-accent-2 py-3 rounded-lg text-xs">xʸ</button>
+            <button onclick="appendValue('(')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-semibold text-lg">(</button>
+            <button onclick="appendValue(')')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-semibold text-lg">)</button>
+
+
+            <!-- Row 4: Numbers and Operators -->
+            <button onclick="appendFunction('exp(')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">eˣ</button>
+            <button onclick="appendValue('7')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">7</button>
+            <button onclick="appendValue('8')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">8</button>
+            <button onclick="appendValue('9')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">9</button>
+            <button onclick="appendOperator('/')" class="calc-btn operator-btn bg-operator-btn/80 text-white py-3 rounded-lg font-bold text-xl">/</button>
+            <button onclick="appendOperator('*')" class="calc-btn operator-btn bg-operator-btn/80 text-white py-3 rounded-lg font-bold text-xl">x</button>
+
+
+            <!-- Row 5: Numbers and Operators -->
+            <button onclick="appendFunction('fact(')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">x!</button>
+            <button onclick="appendValue('4')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">4</button>
+            <button onclick="appendValue('5')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">5</button>
+            <button onclick="appendValue('6')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">6</button>
+            <button onclick="appendOperator('-')" class="calc-btn operator-btn bg-operator-btn/80 text-white py-3 rounded-lg font-bold text-xl col-span-2">-</button>
+
+
+            <!-- Row 6: Numbers and Operators -->
+            <button onclick="appendFunction('cbrt(')" class="calc-btn func-btn bg-func-btn/50 text-accent-2 py-3 rounded-lg text-xs">³√</button>
+            <button onclick="appendValue('1')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">1</button>
+            <button onclick="appendValue('2')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">2</button>
+            <button onclick="appendValue('3')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">3</button>
+            <button onclick="appendOperator('+')" class="calc-btn operator-btn bg-operator-btn/80 text-white py-3 rounded-lg font-bold text-xl col-span-2" style="grid-row: span 2;">+</button>
+
+
+            <!-- Row 7: Bottom Row -->
+            <button onclick="appendValue('+/-')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">+/-</button>
+            <button onclick="appendValue('0')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">0</button>
+            <button onclick="appendValue('.')" class="calc-btn number-btn bg-number-btn text-white py-3 rounded-lg font-bold text-xl">.</button>
+            <button onclick="calculateResult()" class="calc-btn bg-accent-1 text-white py-3 rounded-lg font-bold text-xl col-span-2">=</button>
+
+        </div>
+    </div>
+
+    <script>
+        // --- State and Constants ---
+        let currentExpression = '';
+        let resultDisplayed = false;
+        let isRadianMode = true; // Start in Radians by default
+        let memoryValue = 0;
+        const mainDisplay = document.getElementById('main-display');
+        const historyDisplay = document.getElementById('history-display');
+        const modeToggle = document.getElementById('mode-toggle');
+        const MAX_DIGITS = 12;
+
+        // --- Helper Functions ---
+
+        /**
+         * Safely formats numbers to limit decimal places and handle scientific notation.
+         * @param {number} num - The number to format.
+         * @returns {string} - The formatted string.
+         */
+        function formatResult(num) {
+            if (num === Infinity || num === -Infinity || isNaN(num)) {
+                return "Error";
+            }
+            // Use toPrecision to handle large/small numbers with scientific notation
+            let str = parseFloat(num.toPrecision(MAX_DIGITS)).toString();
+
+            // Prevent display overflow by forcing scientific notation if too long
+            if (str.length > MAX_DIGITS + 2 && str.indexOf('e') === -1) {
+                 str = num.toExponential(MAX_DIGITS - 6);
+            }
+            return str;
+        }
+
+        /**
+         * Toggles between Degree and Radian mode.
+         */
+        modeToggle.addEventListener('click', () => {
+            isRadianMode = !isRadianMode;
+            modeToggle.textContent = isRadianMode ? 'RAD' : 'DEG';
+            modeToggle.classList.toggle('bg-accent-1/20');
+            modeToggle.classList.toggle('bg-accent-2/20');
+            mainDisplay.textContent = 'Mode set to ' + (isRadianMode ? 'RAD' : 'DEG');
+            resultDisplayed = true;
+            currentExpression = '';
+            historyDisplay.textContent = '';
+        });
+
+        /**
+         * Converts degrees to radians.
+         * @param {number} angle - Angle in degrees.
+         * @returns {number} - Angle in radians.
+         */
+        const toRadians = (angle) => angle * (Math.PI / 180);
+
+        /**
+         * Custom factorial function.
+         * @param {number} n - The number to calculate the factorial of.
+         * @returns {number} - The factorial result.
+         */
+        function factorial(n) {
+            if (n < 0 || !Number.isInteger(n)) {
+                // Return NaN or throw error for non-integers/negatives, which is handled in calculateResult
+                return NaN;
+            }
+            let res = 1;
+            for (let i = 2; i <= n; i++) res *= i;
+            return res;
+        }
+
+        /**
+         * Updates the display with the current expression.
+         */
+        function updateDisplay() {
+            // Replace internal codes with display symbols
+            let displayString = currentExpression
+                .replace(/\*\*/g, '^') // Power
+                .replace(/Math\.PI/g, 'π')
+                .replace(/Math\.E/g, 'e')
+                .replace(/Math\.log10/g, 'log(')
+                .replace(/Math\.log/g, 'ln(')
+                .replace(/Math\.sqrt/g, '√(')
+                .replace(/Math\.cbrt/g, 'cbrt(')
+                .replace(/Math\.sin/g, 'sin(')
+                .replace(/Math\.cos/g, 'cos(')
+                .replace(/Math\.tan/g, 'tan(')
+                .replace(/Math\.asin/g, 'asin(')
+                .replace(/Math\.acos/g, 'acos(')
+                .replace(/Math\.atan/g, 'atan(')
+                .replace(/Math\.exp/g, 'e^(')
+                .replace(/fact/g, '!') // Factorial
+                .replace(/\*10\*\*/g, 'E'); // Scientific notation E
+            
+            // This is a simple visual update, not the calculation logic
+            mainDisplay.textContent = displayString || '0';
+        }
+
+        // --- Core Calculator Logic ---
+
+        /**
+         * Appends a number or constant to the expression.
+         * @param {string} value - The number/constant string (e.g., '1', '.', 'π').
+         */
+        function appendValue(value) {
+            if (resultDisplayed) {
+                currentExpression = '';
+                resultDisplayed = false;
+                historyDisplay.textContent = '';
+            }
+
+            if (value === 'π') {
+                currentExpression += 'Math.PI';
+            } else if (value === 'e') {
+                currentExpression += 'Math.E';
+            } else if (value === '+/-') {
+                // Simple logic for negation on the last number or parenthesis group
+                const lastTokenMatch = currentExpression.match(/(\d+\.?\d*|\)$)$/);
+                if (lastTokenMatch) {
+                    const lastToken = lastTokenMatch[1];
+                    const negation = `(-${lastToken})`;
+                    currentExpression = currentExpression.replace(new RegExp(lastToken + '$'), negation);
+                } else if (currentExpression.trim() === '0' || currentExpression.trim() === '') {
+                    currentExpression = '-';
+                }
+            }
+             else {
+                // Clear initial '0' if user starts with a number
+                if (currentExpression === '0') currentExpression = '';
+                currentExpression += value;
+            }
+            updateDisplay();
+        }
+
+        /**
+         * Appends an operator to the expression.
+         * @param {string} op - The operator string ('+', '-', '*', '/', '^').
+         */
+        function appendOperator(op) {
+            resultDisplayed = false;
+            // Handle power operator visually and for calculation
+            if (op === '^') {
+                currentExpression += '**';
+            } else {
+                // Prevent duplicate operators at the end
+                const lastChar = currentExpression.slice(-1);
+                if ('+-*/'.includes(lastChar)) {
+                    currentExpression = currentExpression.slice(0, -1) + op;
+                } else {
+                    currentExpression += op;
+                }
+            }
+            updateDisplay();
+        }
+
+        /**
+         * Appends a scientific function call (e.g., 'sin(', 'log(').
+         * @param {string} func - The function string (e.g., 'sin(', 'log(', 'fact(').
+         */
+        function appendFunction(func) {
+            resultDisplayed = false;
+
+            // Map display function names to Math equivalents
+            let internalFunc = func;
+            if (func === 'log(') internalFunc = 'Math.log10(';
+            else if (func === 'ln(') internalFunc = 'Math.log(';
+            else if (func === 'sqrt(') internalFunc = 'Math.sqrt(';
+            else if (func === 'cbrt(') internalFunc = 'Math.cbrt(';
+            else if (func === 'exp(') internalFunc = 'Math.exp(';
+            else if (func.endsWith('sin(') && func.length === 4) internalFunc = 'Math.sin(';
+            else if (func.endsWith('cos(') && func.length === 4) internalFunc = 'Math.cos(';
+            else if (func.endsWith('tan(') && func.length === 4) internalFunc = 'Math.tan(';
+            else if (func === 'asin(') internalFunc = 'Math.asin(';
+            else if (func === 'acos(') internalFunc = 'Math.acos(';
+            else if (func === 'atan(') internalFunc = 'Math.atan(';
+            else if (func === 'fact(') internalFunc = 'fact('; // Custom handler
+
+            // Check if we should insert an implicit multiplication before the function
+            const lastChar = currentExpression.slice(-1);
+            if (lastChar.match(/[0-9\.\)eπ]/)) {
+                currentExpression += '*';
+            }
+
+            currentExpression += internalFunc;
+            updateDisplay();
+        }
+
+        /**
+         * Clears the main display and expression.
+         */
+        function clearDisplay() {
+            currentExpression = '';
+            resultDisplayed = false;
+            mainDisplay.textContent = '0';
+            historyDisplay.textContent = '';
+        }
+
+        /**
+         * Removes the last character from the expression.
+         */
+        function backspace() {
+            if (resultDisplayed) return;
+            // This is a simple backspace, it won't handle complex internal strings perfectly
+            // but is acceptable for a single-file demo.
+            currentExpression = currentExpression.slice(0, -1);
+            updateDisplay();
+        }
+
+        /**
+         * Evaluates the current expression.
+         */
+        function calculateResult() {
+            if (resultDisplayed) return;
+
+            // 1. Prepare expression for Math.eval
+            let expressionToEval = currentExpression;
+
+            // 1a. Handle factorials: Replace fact(N) with the calculated value
+            const factRegex = /fact\(([^)]+)\)/g;
+            expressionToEval = expressionToEval.replace(factRegex, (match, n) => {
+                try {
+                    // Evaluate the number inside fact()
+                    const num = eval(n);
+                    if (!Number.isInteger(num) || num < 0) throw new Error("Invalid factorial input");
+                    return factorial(num);
+                } catch (e) {
+                    console.error("Factorial calculation error:", e);
+                    return 'NaN'; // Returns NaN which will be handled as an error result
+                }
+            });
+
+
+            // 1b. Handle trig functions for Degree mode
+            if (!isRadianMode) {
+                const trigRegex = /(Math\.(?:sin|cos|tan))\(([^)]+)\)/g;
+                expressionToEval = expressionToEval.replace(trigRegex, (match, func, angle) => {
+                    try {
+                        const deg = eval(angle); // Evaluate the angle expression
+                        const rad = toRadians(deg);
+                        // The evaluated function call
+                        return `${func}(${rad})`;
+                    } catch (e) {
+                        console.error("Trig degree conversion error:", e);
+                        return 'NaN';
+                    }
+                });
+            }
+
+            // 1c. Handle inverse trig functions (always return degrees for DEG mode)
+            if (!isRadianMode) {
+                const invTrigRegex = /(Math\.(?:asin|acos|atan))\(([^)]+)\)/g;
+                // Inverse functions in JS return radians. We convert the result to degrees.
+                expressionToEval = expressionToEval.replace(invTrigRegex, (match) => {
+                    // We can't easily inline the full logic here, so we'll wrap the function call:
+                    // asin(x) -> (Math.asin(x) * 180 / Math.PI)
+                    // The simple replace is safer for a single-file implementation
+                    return `(180/Math.PI) * ${match}`;
+                });
+            }
+
+            // 2. Perform Evaluation
+            let result;
+            try {
+                // Use a Function constructor for safer, but still powerful, evaluation
+                // Note: The scope of 'eval' is local in this context
+                result = new Function('return ' + expressionToEval)();
+            } catch (e) {
+                result = "Error";
+                console.error("Evaluation error:", e);
+            }
+
+            // 3. Update Display
+            historyDisplay.textContent = mainDisplay.textContent;
+
+            if (result === "Error" || result === NaN || result === undefined || result.toString() === 'NaN') {
+                mainDisplay.textContent = "Error";
+                currentExpression = ''; // Reset on error
+            } else {
+                result = formatResult(result);
+                mainDisplay.textContent = result;
+                // Set the current expression to the result for chained operations
+                currentExpression = result;
+            }
+
+            resultDisplayed = true;
+        }
+
+        // --- Memory Functions ---
+        function memory(action) {
+            let result;
+            let currentNum = parseFloat(mainDisplay.textContent);
+
+            switch (action) {
+                case 'MC': // Memory Clear
+                    memoryValue = 0;
+                    result = 'Memory Cleared';
+                    break;
+                case 'MR': // Memory Recall
+                    currentExpression = memoryValue.toString();
+                    result = `Memory Recall: ${memoryValue}`;
+                    resultDisplayed = true;
+                    break;
+                case 'M+': // Memory Add
+                    if (currentExpression !== '') {
+                        calculateResult();
+                        currentNum = parseFloat(mainDisplay.textContent);
+                    }
+                    if (!isNaN(currentNum)) {
+                        memoryValue += currentNum;
+                        result = `M+ Value: ${formatResult(memoryValue)}`;
+                    } else {
+                        result = 'Invalid Input';
+                    }
+                    break;
+                case 'M-': // Memory Subtract
+                    if (currentExpression !== '') {
+                        calculateResult();
+                        currentNum = parseFloat(mainDisplay.textContent);
+                    }
+                    if (!isNaN(currentNum)) {
+                        memoryValue -= currentNum;
+                        result = `M- Value: ${formatResult(memoryValue)}`;
+                    } else {
+                        result = 'Invalid Input';
+                    }
+                    break;
+            }
+            historyDisplay.textContent = result;
+            if (action === 'MR') {
+                updateDisplay();
+            } else if (action === 'M+' || action === 'M-') {
+                currentExpression = memoryValue.toString();
+                resultDisplayed = true;
+            } else {
+                 mainDisplay.textContent = '0';
+                 currentExpression = '';
+            }
+        }
+
+    </script>
+
+</body>
+</html>
